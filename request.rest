@@ -1,0 +1,6 @@
+POST http://localhost:3001/chat
+Content-Type: application/json
+
+{
+    "text": "မြန်မာပြည်တွင် အကြောင်းအရာများကို ဘယ်လိုပြောရမလဲ။"
+}
