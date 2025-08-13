@@ -1,11 +1,44 @@
 {
-  "name": "transformer-js",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "myanmar-nlp-transformer",
+  "version": "2.0.0",
+  "description": "Advanced Myanmar Natural Language Processing using Transformer architecture with TensorFlow.js",
+  "main": "server.js",
   "license": "MIT",
+  "keywords": [
+    "myanmar",
+    "nlp",
+    "transformer",
+    "tensorflow",
+    "ai",
+    "chatbot",
+    "language-model"
+  ],
+  "author": "Myanmar NLP Team",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "train": "node run_transformer.js",
+    "test": "node -e \"console.log('Testing Myanmar NLP Transformer...')\"",
+    "clean": "rm -rf transformer_checkpoint logs",
+    "setup": "npm install && mkdir -p transformer_checkpoint logs"
+  },
   "dependencies": {
     "@tensorflow/tfjs": "^4.22.0",
     "@tensorflow/tfjs-node": "^4.22.0",
     "express": "^5.1.0"
-  }
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/myanmar-nlp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/myanmar-nlp/issues"
+  },
+  "homepage": "https://github.com/your-username/myanmar-nlp#readme"
 }

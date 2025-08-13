@@ -1,125 +1,161 @@
-// Example usage of TransformerBlock with text data
 const fs = require('fs');
 const tf = require('@tensorflow/tfjs-node');
-const { buildTransformerModel } = require('../transformer');
+const { buildTransformerModel, generateText } = require('./transformer');
 
-// 1. Read and tokenize text
-function readAndTokenize(filePath) {
-  const text = fs.readFileSync(filePath, 'utf8');
-  // Simple whitespace tokenizer (customize for Myanmar text if needed)
-  return text.split(/\s+/);
+// Improved tokenization for Myanmar text
+function tokenizeMyanmarText(text) {
+  // Split by sentences first, then by words
+  const sentences = text.split(/[။\n]+/).filter(s => s.trim().length > 0);
+  const tokens = [];
+  
+  sentences.forEach(sentence => {
+    // Split by spaces and punctuation
+    const words = sentence.split(/[\s\u200b]+/).filter(w => w.trim().length > 0);
+    tokens.push(...words);
+    tokens.push('<SEP>'); // Sentence separator
+  });
+  
+  return tokens;
 }
 
-// 2. Build vocabulary and encode tokens
+// Build vocabulary with special tokens
 function buildVocab(tokens) {
-  const vocab = {};
-  let idx = 0;
+  const vocab = {
+    '<PAD>': 0,
+    '<UNK>': 1,
+    '<START>': 2,
+    '<END>': 3,
+    '<SEP>': 4
+  };
+  
+  let idx = 5;
   tokens.forEach(token => {
     if (!(token in vocab)) {
       vocab[token] = idx++;
     }
   });
+  
   return vocab;
 }
 
-function encodeTokens(tokens, vocab) {
-  return tokens.map(token => vocab[token]);
-}
-
-// 3. Create embeddings
-function createEmbeddings(tokenIds, vocabSize, embedDim) {
-  // Random embeddings for demonstration
-  const embeddingMatrix = tf.randomNormal([vocabSize, embedDim]);
-  return tf.gather(embeddingMatrix, tf.tensor1d(tokenIds, 'int32'));
-}
-
-// 4. Build, train, save, and load transformer model
-async function runTransformerModel(filePath) {
-  const embedDim = 32;
-  const numHeads = 4;
-  const ffDim = 64;
-
-  const tokens = readAndTokenize(filePath);
-  const vocab = buildVocab(tokens);
-  const tokenIds = encodeTokens(tokens, vocab);
-  const seqLen = tokenIds.length - 1; // for next-token prediction
-  const vocabSize = Object.keys(vocab).length;
-
-  // Create trainable embedding matrix
-  const embeddingMatrix = tf.variable(tf.randomNormal([vocabSize, embedDim]), true, 'embeddingMatrix');
-
-  // Prepare training data: sliding window batching
-  const windowSize = 32;
-  const xTrain = [];
-  const yTrain = [];
-  for (let i = 0; i < tokenIds.length - windowSize; i++) {
-    const xTokenIds = tokenIds.slice(i, i + windowSize);
-    const yTokenId = tokenIds[i + windowSize];
-    xTrain.push(tf.gather(embeddingMatrix, tf.tensor1d(xTokenIds, 'int32')).arraySync());
-    yTrain.push(yTokenId);
-  }
-  // Convert to tensors
-  // Add positional encoding to input embeddings
-  function getPositionalEncoding(seqLen, embedDim) {
-    const PE = [];
-    for (let pos = 0; pos < seqLen; pos++) {
-      const row = [];
-      for (let i = 0; i < embedDim; i++) {
-        if (i % 2 === 0) {
-          row.push(Math.sin(pos / Math.pow(10000, i / embedDim)));
-        } else {
-          row.push(Math.cos(pos / Math.pow(10000, (i - 1) / embedDim)));
-        }
-      }
-      PE.push(row);
+// Create training sequences with proper padding
+function createSequences(tokenIds, seqLen) {
+  const sequences = [];
+  const targets = [];
+  
+  for (let i = 0; i < tokenIds.length - seqLen; i++) {
+    const sequence = tokenIds.slice(i, i + seqLen);
+    const target = tokenIds[i + seqLen];
+    
+    // Pad sequence if needed
+    while (sequence.length < seqLen) {
+      sequence.unshift(0); // <PAD> token
     }
-    return tf.tensor(PE, [seqLen, embedDim]);
+    
+    sequences.push(sequence);
+    targets.push(target);
   }
-  const posEncoding = getPositionalEncoding(windowSize, embedDim);
-  let xTrainTensor = tf.tensor(xTrain); // [numSamples, windowSize, embedDim]
-  xTrainTensor = xTrainTensor.add(posEncoding);
+  
+  return { sequences, targets };
+}
 
-  // Extract last token embedding from each window
-  const lastTokenEmbeddings = xTrainTensor.slice([0, windowSize - 1, 0], [-1, 1, -1]).reshape([xTrainTensor.shape[0], embedDim]); // [numSamples, embedDim]
-  const yTrainTensor = tf.tensor(yTrain).expandDims(-1).cast('float32'); // [numSamples, 1]
-
-
-  // Try to load model checkpoint, else build new model
-  let model;
-  const checkpointPath = 'file://transformer_checkpoint/model.json';
-  try {
-    model = await tf.loadLayersModel(checkpointPath);
-    console.log('Loaded model from checkpoint');
-  } catch (err) {
-    model = buildTransformerModel(1, embedDim, numHeads, ffDim, vocabSize, 2, 0.1);
-    console.log('Built new advanced model');
-  }
-  model.summary();
-
-  // Compile model
+// Main training function
+async function runTransformerModel(filePath) {
+  console.log('🚀 Starting Myanmar NLP Transformer Training...');
+  
+  // Reduced model hyperparameters for stability
+  const seqLen = 64;  // Reduced from 128
+  const dModel = 128; // Reduced from 256
+  const numHeads = 4; // Reduced from 8
+  const dff = 512;    // Reduced from 1024
+  const numBlocks = 3; // Reduced from 6
+  const dropoutRate = 0.1;
+  const batchSize = 16; // Reduced from 32
+  const epochs = 20;    // Reduced from 50
+  
+  console.log('📖 Reading Myanmar text data...');
+  const text = fs.readFileSync(filePath, 'utf8');
+  
+  console.log('✂️ Tokenizing text...');
+  const tokens = tokenizeMyanmarText(text);
+  console.log(`📊 Total tokens: ${tokens.length}`);
+  
+  console.log('🔤 Building vocabulary...');
+  const vocab = buildVocab(tokens);
+  const vocabSize = Object.keys(vocab).length;
+  console.log(`📚 Vocabulary size: ${vocabSize}`);
+  
+  console.log('🔄 Encoding tokens...');
+  const tokenIds = tokens.map(token => vocab[token] || vocab['<UNK>']);
+  
+  console.log('📝 Creating training sequences...');
+  const { sequences, targets } = createSequences(tokenIds, seqLen);
+  console.log(`🎯 Training samples: ${sequences.length}`);
+  
+  // Convert to tensors
+  const xTrain = tf.tensor(sequences);
+  const yTrain = tf.tensor(targets);
+  
+  console.log('🏗️ Building transformer model...');
+  const model = buildTransformerModel(seqLen, dModel, numHeads, dff, vocabSize, numBlocks, dropoutRate);
+  
+  // Compile model with better optimizer
   model.compile({
-    optimizer: tf.train.adam(),
+    optimizer: tf.train.adam(0.001), // Changed from adamax to adam
     loss: 'sparseCategoricalCrossentropy',
     metrics: ['accuracy']
   });
-
-  // Train model (more epochs for better results)
-  await model.fit(lastTokenEmbeddings, yTrainTensor, {
-    epochs: 30,
-    batchSize: 32,
+  
+  console.log('📋 Model summary:');
+  model.summary();
+  
+  console.log('🎯 Starting training...');
+  
+  // Basic training without callbacks to avoid compatibility issues
+  const history = await model.fit(xTrain, yTrain, {
+    epochs,
+    batchSize,
+    validationSplit: 0.2,
     shuffle: true,
     verbose: 1
   });
-
-  // Save model checkpoint
+  
+  console.log('💾 Saving model...');
   await model.save('file://transformer_checkpoint');
-  console.log('Model saved to transformer_checkpoint');
-
-  // Load model checkpoint
-  const loadedModel = await tf.loadLayersModel('file://transformer_checkpoint/model.json');
-  console.log('Model loaded from checkpoint');
-  const output = loadedModel.predict(lastTokenEmbeddings);
-  output.print();
+  console.log('✅ Model saved successfully!');
+  
+  // Test text generation
+  console.log('\n🧪 Testing text generation...');
+  const testPrompt = ['ငလျင်', 'အကြောင်း'];
+  const testTokens = testPrompt.map(token => vocab[token] || vocab['<UNK>']);
+  
+  try {
+    const generatedText = generateText(model, vocab, testTokens, 20, 0.8);
+    console.log('🎭 Generated text:');
+    console.log(generatedText);
+  } catch (err) {
+    console.log('❌ Text generation test failed:', err.message);
+  }
+  
+  // Clean up tensors
+  xTrain.dispose();
+  yTrain.dispose();
+  
+  console.log('\n🎉 Training completed successfully!');
+  return { model, vocab, history };
 }
 
-runTransformerModel('input_myanmar.txt');
+// Run the training
+if (require.main === module) {
+  runTransformerModel('input_myanmar.txt')
+    .then(() => {
+      console.log('🎊 All done!');
+      process.exit(0);
+    })
+    .catch(err => {
+      console.error('❌ Error during training:', err);
+      process.exit(1);
+    });
+}
+
+module.exports = { runTransformerModel, tokenizeMyanmarText, buildVocab };
