@@ -188,7 +188,7 @@ MIT License - ဒီ project ကို လွတ်လပ်စွာ အသု�
 အကြံပြုချက်များ သို့မဟုတ် မေးခွန်းများအတွက်:
 
 - GitHub Issues: [Create Issue](https://github.com/sailao/myanmar-nlp/issues)
-- Email: sailaohsang@example.com
+- Email: sailaohsang@gmail.com
 
 ---
 
