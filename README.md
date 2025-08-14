@@ -6,6 +6,8 @@
 [![TensorFlow.js](https://img.shields.io/badge/TensorFlow.js-4.22+-orange.svg)](https://tensorflow.org/js)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+## [Clik heare for deepwiki](https://deepwiki.com/sailao/myanmar-nlp)
+
 ## 🌟 အဓိက အင်္ဂါရပ်များ
 
 - **🤖 Real Transformer Architecture** - Multi-head attention, residual connections, layer normalization
@@ -27,7 +29,7 @@
 
 ```bash
 # Repository ကို clone လုပ်ပါ
-git clone https://github.com/your-username/myanmar-nlp.git
+git clone https://github.com/sailao/myanmar-nlp.git
 cd myanmar-nlp
 
 # Dependencies များကို ထည့်သွင်းပါ
@@ -185,8 +187,8 @@ MIT License - ဒီ project ကို လွတ်လပ်စွာ အသု�
 
 အကြံပြုချက်များ သို့မဟုတ် မေးခွန်းများအတွက်:
 
-- GitHub Issues: [Create Issue](https://github.com/your-username/myanmar-nlp/issues)
-- Email: your-email@example.com
+- GitHub Issues: [Create Issue](https://github.com/sailao/myanmar-nlp/issues)
+- Email: sailaohsang@example.com
 
 ---
 
